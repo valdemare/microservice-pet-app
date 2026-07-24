@@ -5,13 +5,17 @@ import com.quickbite.orderservice.config.RabbitMQConfig;
 import com.quickbite.orderservice.dto.OrderCreatedEvent;
 import com.quickbite.orderservice.dto.UserDto;
 import com.quickbite.orderservice.entity.OrderEntity;
+import com.quickbite.orderservice.entity.OutboxEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
+import com.quickbite.orderservice.repository.OutboxRepository;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,11 +23,14 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Transactional
 public class OrderController {
 
     private final OrderRepository orderRepository;
     private final UserClient userClient;
     private final RabbitTemplate rabbitTemplate;
+    private final OutboxRepository outboxRepository;
+    private final ObjectMapper objectMapper;
 
     @PostMapping
     public OrderEntity createOrder(@RequestBody OrderEntity order) {
@@ -46,18 +53,30 @@ public class OrderController {
         // 2. Сохраняем заказ в базу данных
         OrderEntity savedOrder = orderRepository.save(order);
 
-        // 3. Публикуем событие в RabbitMQ (Асинхронно)
+        // 3. Формируем DTO события
+        String eventId = UUID.randomUUID().toString();
         OrderCreatedEvent event = new OrderCreatedEvent(
-                UUID.randomUUID().toString(),
+                eventId,
                 savedOrder.getId(),
                 savedOrder.getUserId(),
                 savedOrder.getDescription(),
                 savedOrder.getPrice()
         );
 
+        // 4. Сериализуем событие в JSON и сохраняем в Outbox (В ТОЙ ЖЕ ТРАНЗАКЦИИ)
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(event);
+            OutboxEntity outbox = new OutboxEntity(eventId, "ORDER", savedOrder.getId(), jsonPayload);
+            outboxRepository.save(outbox);
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка сериализации события в Outbox", e);
+        }
+        System.out.println("Заказ #" + savedOrder.getId() + " и событие в Outbox успешно сохранены!");
+
+        /*   // 3. Публикуем событие в RabbitMQ (Асинхронно)
         rabbitTemplate.convertAndSend("",RabbitMQConfig.QUEUE_NAME, event);
         System.out.println("Событие OrderCreatedEvent отправлено в RabbitMQ!");
-
+*/
         return savedOrder;
     }
 
