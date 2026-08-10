@@ -1,0 +1,39 @@
+server:
+  port: 8080 # Единый порт для внешнего мира
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        # Маршрут для Заказов
+        - id: order-service
+          uri: lb://ORDER-SERVICE # lb:// говорит использовать Load Balancer через Eureka
+          predicates:
+            - Path=/orders, /orders/**
+          filters:
+            # Заменяет /orders/123 на /api/v1/orders/123
+            - RewritePath=/orders(?<segment>/?.*), /api/v1/orders$\{segment}
+
+        # Маршрут для Уведомлений
+        - id: notification-service
+          uri: lb://NOTIFICATION-SERVICE
+          predicates:
+            - Path=/notifications/**
+
+        # Маршрут для Пользователей (если есть контроллеры)
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.http.server.reactive: DEBUG
