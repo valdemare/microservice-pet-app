@@ -15,12 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationServiceImpl implements NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationServiceImpl.class);
-    private ProcessedEventRepository processedEventRepository;
+    private final ProcessedEventRepository processedEventRepository;
     private final NotificationRepository notificationRepository;
 
-    public NotificationServiceImpl(ProcessedEventRepository processedEventRepository, NotificationRepository notificationRepository) {
+    public NotificationServiceImpl(ProcessedEventRepository processedEventRepository,
+                                   NotificationRepository notificationRepository) {
         this.processedEventRepository = processedEventRepository;
-        this.notificationRepository=notificationRepository;
+        this.notificationRepository = notificationRepository;
     }
     @Override
     @Transactional
@@ -29,18 +30,16 @@ public class NotificationServiceImpl implements NotificationService {
 
         // Проверяем, обрабатывали ли мы это событие ранее
         if (processedEventRepository.existsById(eventId)) {
-            log.warn("⚠️ [ДУБЛИКАТ] Событие с eventId={} уже было обработано ранее. Пропускаем.", eventId);
+            log.warn("️[ДУБЛИКАТ] Событие с eventId={} уже было обработано ранее. Пропускаем.", eventId);
             return; // Выходим из метода — повторная отправка письма/SMS не выполняется!
         }
-        log.info("===> Начало обработки уведомления для заказа #{}", event.getOrderId());
-        // Временная имитация падения сервиса
-        // throw new RuntimeException("Упс! Сервис упал при обработке!");
-
         // Формируем текст уведомления
         String emailMessage = String.format("Уважаемый клиент #%d, ваш заказ #%d (%s) на сумму %.2f руб. успешно создан!",
                 event.getUserId(), event.getOrderId(), event.getDescription(), event.getPrice());
-        // Имитация формирования и отправки сообщения
+
+        // Отправляем сообщение (имитация или реальный сервис)
         sendEmail(event.getUserId(), emailMessage);
+
         // Сохраняем бизнес-историю уведомления в БД
         NotificationEntity notification = new NotificationEntity(
                 eventId,
@@ -51,11 +50,9 @@ public class NotificationServiceImpl implements NotificationService {
                 NotificationEntity.NotificationStatus.SENT
         );
         notificationRepository.save(notification);
-        
-        // Сохраняем eventId в БД, фиксируя успешную обработку
+
+        // Фиксируем успешную обработку для идемпотентности
         processedEventRepository.save(new ProcessedEvent(eventId));
-        // Дополнительные действия (например, метрики или push)
-        log.info("<=== Уведомление по заказу #{} успешно отправлено!", event.getOrderId());
     }
 
     private void sendEmail(Long userId, String text) {
