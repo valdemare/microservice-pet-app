@@ -1,24 +1,19 @@
 package com.quickbite.orderservice.controller;
 
+import com.quickbite.common.security.UserContext;
 import com.quickbite.orderservice.client.UserClient;
-import com.quickbite.orderservice.config.RabbitMQConfig;
-import com.quickbite.orderservice.dto.OrderCreatedEvent;
-import com.quickbite.orderservice.dto.UserDto;
 import com.quickbite.orderservice.entity.OrderEntity;
-import com.quickbite.orderservice.entity.OutboxEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.repository.OutboxRepository;
-import feign.FeignException;
+import com.quickbite.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -32,52 +27,16 @@ public class OrderController {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
+    private final OrderService orderService;
+
     @PostMapping
-    public OrderEntity createOrder(@RequestBody OrderEntity order) {
-        // 1. Проверяем существование пользователя в user-service
-        try {
-            UserDto user = userClient.getUserById(order.getUserId());
-            System.out.println("Создаем заказ для пользователя: " + user.getName());
-        } catch (FeignException.NotFound e) {
-            // 404 только если user-service ответил, что ЮЗЕРА НЕТ
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Пользователь с ID " + order.getUserId() + " не найден!"
-            );
-        } catch (Exception e) {
-            // 503 если user-service недоступен / упал / не отвечает
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE, "user-service временно недоступен: " + e.getMessage()
-            );
-        }
+    public OrderEntity createOrder(@RequestBody OrderEntity order,
+                                   @AuthenticationPrincipal UserContext userContext) {
 
-        // 2. Сохраняем заказ в базу данных
-        OrderEntity savedOrder = orderRepository.save(order);
+        // Передаем в сервис тело заказа И настоящий userId, извлеченный фильтром из заголовков Gateway
+        Long currentUserId = (userContext != null) ? userContext.getUserId() : order.getUserId();
 
-        // 3. Формируем DTO события
-        String eventId = UUID.randomUUID().toString();
-        OrderCreatedEvent event = new OrderCreatedEvent(
-                eventId,
-                savedOrder.getId(),
-                savedOrder.getUserId(),
-                savedOrder.getDescription(),
-                savedOrder.getPrice()
-        );
-
-        // 4. Сериализуем событие в JSON и сохраняем в Outbox (В ТОЙ ЖЕ ТРАНЗАКЦИИ)
-        try {
-            String jsonPayload = objectMapper.writeValueAsString(event);
-            OutboxEntity outbox = new OutboxEntity(eventId, "ORDER", savedOrder.getId(), jsonPayload);
-            outboxRepository.save(outbox);
-        } catch (Exception e) {
-            throw new RuntimeException("Ошибка сериализации события в Outbox", e);
-        }
-        System.out.println("Заказ #" + savedOrder.getId() + " и событие в Outbox успешно сохранены!");
-
-        /*   // 3. Публикуем событие в RabbitMQ (Асинхронно)
-        rabbitTemplate.convertAndSend("",RabbitMQConfig.QUEUE_NAME, event);
-        System.out.println("Событие OrderCreatedEvent отправлено в RabbitMQ!");
-*/
-        return savedOrder;
+        return orderService.createOrder(order, currentUserId);
     }
 
     @GetMapping
