@@ -8,6 +8,7 @@ import com.quickbite.orderservice.repository.OutboxRepository;
 import com.quickbite.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +31,7 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public OrderEntity createOrder(@RequestBody OrderEntity order,
                                    @AuthenticationPrincipal UserContext userContext) {
 
@@ -40,6 +42,7 @@ public class OrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<OrderEntity> getAllOrders() {
         return orderRepository.findAll();
     }

@@ -7,14 +7,20 @@ spring:
   cloud:
     gateway:
       routes:
-        # Маршрут для Заказов
-        - id: order-service
-          uri: lb://ORDER-SERVICE # lb:// говорит использовать Load Balancer через Eureka
+        # Маршруты для Заказов
+        # 1. Маршрут для короткого пути (автоматически добавляет /api/v1)
+        - id: order-service-short
+          uri: lb://ORDER-SERVICE
           predicates:
             - Path=/orders, /orders/**
           filters:
-            # Заменяет /orders/123 на /api/v1/orders/123
             - RewritePath=/orders(?<segment>/?.*), /api/v1/orders$\{segment}
+
+        # 2. Маршрут для прямого пути (пробрасывает /api/v1/orders как есть)
+        - id: order-service-direct
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/api/v1/orders, /api/v1/orders/**
 
         # Маршрут для Уведомлений
         - id: notification-service

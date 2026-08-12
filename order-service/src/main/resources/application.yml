@@ -1,0 +1,58 @@
+server:
+  port: 8082
+  error:
+    include-message: always
+
+spring:
+  application:
+    name: order-service
+  # orders_db
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orders_db
+    username: postgres
+    password: qweryt123
+  # Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  # RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+# (User Service)
+user:
+  service:
+    url: http://localhost:8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  health:
+    # Если падает из-за DB/RabbitMQ в режиме отладки:
+    db:
+      enabled: false
+
+logging:
+  level:
+    org:
+      hibernate: ERROR
+      hibernate.SQL: OFF
+      springframework:
+        web: DEBUG
+        security: DEBUG
