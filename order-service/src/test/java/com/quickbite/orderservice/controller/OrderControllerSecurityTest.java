@@ -49,6 +49,7 @@ class OrderControllerSecurityTest {
     @DisplayName("POST /api/v1/orders - Должен успешно создать заказ для ROLE_USER")
     void createOrder_whenUserRole_shouldReturn200() throws Exception {
         OrderEntity orderRequest = new OrderEntity();
+        orderRequest.setUserId(1L);
         orderRequest.setDescription("Пицца");
         orderRequest.setPrice(new BigDecimal("500.00"));
 

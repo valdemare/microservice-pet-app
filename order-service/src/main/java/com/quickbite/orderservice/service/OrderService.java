@@ -65,19 +65,8 @@ public class OrderService {
     }
 
     private void validateUserExistence(Long userId) {
-        try {
-            UserDto user = userClient.getUserById(userId);
-            log.info("Создаем заказ для пользователя ID: {}, Name: {}", userId, user.getName());
-        } catch (FeignException.NotFound e) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Пользователь с ID " + userId + " не найден!"
-            );
-        } catch (Exception e) {
-            log.error("Ошибка обращения к user-service для userId={}: {}", userId, e.getMessage());
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE, "user-service временно недоступен: " + e.getMessage()
-            );
-        }
+        UserDto user = userClient.getUserById(userId);
+        log.info("Создаем заказ для пользователя ID: {}, Name: {}", userId, user.getName());
     }
 
     private OutboxEntity createOutboxEntity(String eventId, Long orderId, OrderCreatedEvent event) {

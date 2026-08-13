@@ -18,13 +18,13 @@ public class JwtUtils {
     /**
      * Валидация подписи и срока годности (выбросит исключение, если токен невалиден)
      */
-    public void validateToken(String token) {
+  /*  public void validateToken(String token) {
         Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token);
     }
-
+*/
     /**
      * Извлечение Claims (полезной нагрузки)
      */
