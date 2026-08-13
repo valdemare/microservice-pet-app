@@ -1,0 +1,29 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  # 1. Настройки тестовой БД (H2 в оперативной памяти)
+  datasource:
+    url: jdbc:h2:mem:order_service_test_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # Автоматически создает таблицы из сущностей и удаляет после тестов
+    show-sql: true
+
+  # 2. Отключение Spring Cloud Discovery для тестов
+  cloud:
+    discovery:
+      enabled: false
+    config:
+      enabled: false
+
+# 3. Отключение клиента Eureka
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false

@@ -6,6 +6,7 @@ import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.repository.OutboxRepository;
 import com.quickbite.orderservice.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,16 +24,11 @@ import java.util.List;
 public class OrderController {
 
     private final OrderRepository orderRepository;
-    private final UserClient userClient;
-    private final RabbitTemplate rabbitTemplate;
-    private final OutboxRepository outboxRepository;
-    private final ObjectMapper objectMapper;
-
     private final OrderService orderService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public OrderEntity createOrder(@RequestBody OrderEntity order,
+    public OrderEntity createOrder(@Valid @RequestBody OrderEntity order,
                                    @AuthenticationPrincipal UserContext userContext) {
 
         // Передаем в сервис тело заказа И настоящий userId, извлеченный фильтром из заголовков Gateway
