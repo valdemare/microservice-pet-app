@@ -6,6 +6,32 @@ spring:
     name: gateway-service
   cloud:
     gateway:
+      # Орабатывать OPTIONS запросы до прохождения фильтров
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]': # Применять CORS ко всем маршрутам
+            allowedOriginPatterns:
+              - "http://localhost:3000"
+              - "http://localhost:5173" # Стандартный порт Vite / React
+              - "https://*.quickbite.com" # Продакшен домены
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "Authorization"
+              - "Content-Type"
+              - "X-Requested-With"
+              - "Accept"
+              - "Origin"
+            exposedHeaders: # Заголовки, которые JS на фронтенде сможет прочитать из ответа
+              - "X-User-Id"
+              - "X-User-Role"
+            allowCredentials: true # Разрешает передачу авторизационных куков и заголовков Header Bearer
+            maxAge: 3600 # Время (в сек), на которое браузер кэширует ответ Preflight (1 час)
       routes:
         # Маршруты для Заказов
         # 1. Маршрут для короткого пути (автоматически добавляет /api/v1)
@@ -45,3 +71,4 @@ logging:
     org.springframework.http.server.reactive: DEBUG
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+

@@ -29,53 +29,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         this.jwtUtils = jwtUtils;
         this.routerValidator = routerValidator;
     }
-/*
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        ServerHttpRequest request = exchange.getRequest();
 
-        // 1. Проверяем, нужно ли проверять токен для этого маршрута
-        if (routerValidator.isSecured.test(request)) {
-
-            // 2. Проверяем наличие заголовка Authorization
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
-            }
-
-            String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
-            }
-
-            String token = authHeader.substring(7);
-
-            try {
-                // 3. Проверяем токен
-                Claims claims = jwtUtils.getClaims(token);
-
-                // 4. Обогащаем запрос заголовками с данными пользователя
-                ServerHttpRequest mutatedRequest = request.mutate()
-                        .header("X-User-Id", claims.getSubject())
-                        .header("X-User-Role", claims.get("role", String.class))
-                        .build();
-
-                return chain.filter(exchange.mutate().request(mutatedRequest).build());
-
-            } catch (Exception e) {
-                // Токен невалиден или просрочен -> 401 Unauthorized
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
-            }
-        }
-
-        // Если маршрут публичный (например, /login), пропускаем дальше
-        return chain.filter(exchange);
-    }
-
-    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus httpStatus) {
-        exchange.getResponse().setStatusCode(httpStatus);
-        return exchange.getResponse().setComplete();
-    }
-*/
 @Override
 public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     ServerHttpRequest request = exchange.getRequest();

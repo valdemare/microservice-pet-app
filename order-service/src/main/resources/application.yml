@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: order-service
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   # orders_db
   datasource:
     url: jdbc:postgresql://localhost:5432/orders_db
@@ -56,3 +60,20 @@ logging:
       springframework:
         web: DEBUG
         security: DEBUG
+
+feign:
+  circuitbreaker:
+    enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCB:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 6                  # Анализируем окно из 6 последних запросов
+        minimumNumberOfCalls: 4               # Минимальное кол-во запросов для расчета % ошибок
+        failureRateThreshold: 50              # Если >= 50% ответили ошибкой -> переходим в OPEN
+        waitDurationInOpenState: 10000ms      # Ждем 10 секунд в состоянии OPEN перед HALF-OPEN
+        permittedNumberOfCallsInHalfOpenState: 2 # Кол-во тестовых запросов в состоянии HALF-OPEN
+        slowCallRateThreshold: 50             # Если >= 50% запросов медленные -> OPEN
+        slowCallDurationThreshold: 2000ms     # Запрос считается медленным, если идет > 2 секунд
