@@ -59,6 +59,10 @@ public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         Claims claims = jwtUtils.getClaims(token);
 
         // 5. Обогащаем очищенный запрос валидными заголовками
+        String role = claims.get("role", String.class);
+        if (role == null || role.isBlank()) {
+            role = "ROLE_USER";
+        }
         ServerHttpRequest mutatedRequest = requestBuilder
                 .header("X-User-Id", claims.getSubject())
                 .header("X-User-Role", claims.get("role", String.class))

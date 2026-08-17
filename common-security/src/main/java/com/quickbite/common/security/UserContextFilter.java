@@ -29,25 +29,30 @@ public class UserContextFilter extends OncePerRequestFilter {
         String userRolesHeader = request.getHeader(X_USER_ROLE);
 
         if (userIdHeader != null && !userIdHeader.isBlank()) {
-            Long userId = Long.parseLong(userIdHeader);
+            try{
+                Long userId = Long.parseLong(userIdHeader);
 
-            List<String> roles = (userRolesHeader != null && !userRolesHeader.isBlank())
-                    ? Arrays.asList(userRolesHeader.split(","))
-                    : Collections.emptyList();
+                List<String> roles = (userRolesHeader != null && !userRolesHeader.isBlank())
+                        ? Arrays.asList(userRolesHeader.split(","))
+                        : Collections.emptyList();
 
-            // Преобразуем строки ролей в GrantedAuthority для Spring Security
-            List<SimpleGrantedAuthority> authorities = roles.stream()
-                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toList());
+                // Преобразуем строки ролей в GrantedAuthority для Spring Security
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
 
-            UserContext userContext = new UserContext(userId, roles);
+                UserContext userContext = new UserContext(userId, roles);
 
-            // Аутентифицируем пользователя внутри Spring Security
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userContext, null, authorities);
+                // Аутентифицируем пользователя внутри Spring Security
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(userContext, null, authorities);
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }catch(NumberFormatException e)
+            {
+                logger.warn("Получен некорректный заголовок X-User-Id: "+ userIdHeader);
+            }
         }
 
         try {

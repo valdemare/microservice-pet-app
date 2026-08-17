@@ -9,10 +9,12 @@ import com.quickbite.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -31,10 +33,10 @@ public class OrderController {
     public OrderEntity createOrder(@Valid @RequestBody OrderEntity order,
                                    @AuthenticationPrincipal UserContext userContext) {
 
-        // Передаем в сервис тело заказа И настоящий userId, извлеченный фильтром из заголовков Gateway
-        Long currentUserId = (userContext != null) ? userContext.getUserId() : order.getUserId();
-
-        return orderService.createOrder(order, currentUserId);
+        if (userContext == null || userContext.getUserId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не аутентифицирован");
+        }
+        return orderService.createOrder(order, userContext.getUserId());
     }
 
     @GetMapping

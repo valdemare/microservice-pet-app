@@ -131,42 +131,35 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>default-compile</id>
-						<phase>compile</phase>
-						<goals>
-							<goal>compile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-					<execution>
-						<id>default-testCompile</id>
-						<phase>test-compile</phase>
-						<goals>
-							<goal>testCompile</goal>
-						</goals>
-						<configuration>
-							<annotationProcessorPaths>
-								<path>
-									<groupId>org.projectlombok</groupId>
-									<artifactId>lombok</artifactId>
-								</path>
-							</annotationProcessorPaths>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.4.0</version>
+                <!-- Конфигурация на уровне плагина -->
+                <configuration>
+                    <inputSpec>${project.basedir}/src/main/resources/openapi/order-service.yaml</inputSpec>
+                    <generatorName>spring</generatorName>
+                    <output>${project.build.directory}/generated-sources/openapi</output>
+                    <configOptions>
+                        <sourceFolder>src/main/java</sourceFolder>
+                        <interfaceOnly>true</interfaceOnly>
+                        <useTags>true</useTags>
+                        <useJakartaEe>true</useJakartaEe>
+                        <openApiNullable>false</openApiNullable>
+
+                        <!-- Генерация DTO как Java Record -->
+                        <recordComponents>true</recordComponents>
+                    </configOptions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
 		</plugins>
 	</build>
 
