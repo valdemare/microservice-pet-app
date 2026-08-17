@@ -1,6 +1,7 @@
 package com.quickbite.orderservice.client;
 
 import com.quickbite.orderservice.dto.UserDto;
+import com.quickbite.orderservice.exception.UserServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -16,6 +17,13 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
         return new UserClient() {
             @Override
             public UserDto getUserById(Long id) {
+                // Вместо заглушки пробрасываем ошибку выше
+                throw new UserServiceException(
+                        "User-service недоступен. Создание заказа невозможно.", cause
+                );
+            }
+            /*          @Override
+            public UserDto getUserById(Long id) {
                 // Логируем причину срабатывания Fallback
                 log.error("Сработал Fallback при вызове user-service для userId={}. Причина: {}",
                         id, cause.getMessage());
@@ -26,8 +34,8 @@ public class UserClientFallbackFactory implements FallbackFactory<UserClient> {
                 stubUser.setEmail("fallback@quickbite.com");
                 stubUser.setName("Временно недоступен");
                 stubUser.setRole("anonymous");
-                return stubUser;// UserDto(id, "Временно недоступен", "fallback@quickbite.com", "anonymous");
-            }
+                return stubUser;
+            }*/
         };
     }
 }

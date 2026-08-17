@@ -4,9 +4,9 @@ import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
+//@Configuration
 public class FeignConfig{
-    @Bean
+   // @Bean
     public ErrorDecoder errorDecoder() {
         return new CustomFeignErrorDecoder();
     }

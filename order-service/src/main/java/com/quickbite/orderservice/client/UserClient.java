@@ -1,14 +1,17 @@
 package com.quickbite.orderservice.client;
 
+import com.quickbite.orderservice.config.UserFeignConfig;
 import com.quickbite.orderservice.dto.UserDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 // Вызывает user-service по указанному URL
-@FeignClient(name = "user-service",
-        fallbackFactory = UserClientFallbackFactory.class,
-        url = "${user.service.url}")
+@FeignClient(name = "user-service"
+        ,fallbackFactory = UserClientFallbackFactory.class
+        ,configuration = UserFeignConfig.class
+//   ,url = "${user.service.url}"
+)
 public interface UserClient {
 
     @GetMapping("/api/v1/users/{id}")

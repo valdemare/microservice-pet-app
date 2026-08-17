@@ -67,13 +67,22 @@ feign:
 
 resilience4j:
   circuitbreaker:
-    instances:
-      userServiceCB:
+    configs:
+      default:
         slidingWindowType: COUNT_BASED
-        slidingWindowSize: 6                  # Анализируем окно из 6 последних запросов
-        minimumNumberOfCalls: 4               # Минимальное кол-во запросов для расчета % ошибок
-        failureRateThreshold: 50              # Если >= 50% ответили ошибкой -> переходим в OPEN
-        waitDurationInOpenState: 10000ms      # Ждем 10 секунд в состоянии OPEN перед HALF-OPEN
-        permittedNumberOfCallsInHalfOpenState: 2 # Кол-во тестовых запросов в состоянии HALF-OPEN
-        slowCallRateThreshold: 50             # Если >= 50% запросов медленные -> OPEN
-        slowCallDurationThreshold: 2000ms     # Запрос считается медленным, если идет > 2 секунд
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3               # Начинаем вычислять % ошибок после 3 вызовов
+        failureRateThreshold: 50              # Если >= 50% ошибок -> переводим в OPEN
+        waitDurationInOpenState: 10000ms      # Находимся в OPEN 10 секунд
+        permittedNumberOfCallsInHalfOpenState: 2
+        recordExceptions:
+          - org.springframework.web.server.ResponseStatusException # ◄ Добавьте класс исключения, которое кидает ваш CustomFeignErrorDecoder
+          - feign.FeignException
+    instances:
+      user-service:
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        failureRateThreshold: 50              # Отключаем при 50% ошибок
+        waitDurationInOpenState: 10000ms
+        recordExceptions:
+          - com.quickbite.orderservice.exception.UserServiceException
