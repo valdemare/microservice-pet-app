@@ -2,12 +2,13 @@
 Пет-проект для практической отработки микросервисной архитектуры на Java / Spring Boot, а также для адаптации и перехода на JVM-стек после опыта разработки на **.NET Core**.
 
 ## 🛠 Технологический стек
-* **Язык & Фреймворк:** Java 17, Spring Boot 3
-* **Брокер сообщений:** RabbitMQ (4.x)
-* **Базы данных:** PostgreSQL / H2 (Spring Data JPA)
-* **Утилиты:** Lombok, Jackson (JSON serialization)
-* **Планируется:** Docker, Docker Compose, Spring Cloud Gateway
-
+* **Язык & Фреймворк:** Java 17, Spring Boot 4.1.0, Spring Cloud 
+* **Централизованная безопасность:** `common-security` модуль (`JwtAuthenticationFilter`, `UserContextFilter` с пробросом `X-User-Id` / `X-User-Role`)
+* **Межсервисный REST:** OpenFeign + Resilience4j (Circuit Breakers & Fallback Factories)
+* **Брокер сообщений:** RabbitMQ
+* **Надежность событий:** Transactional Outbox Pattern 
+* **Базы данных:** PostgreSQL (Spring Data JPA)
+* **Утилиты:** Lombok, Jackson
 ---
 
 ## 🏛 Архитектура и взаимодействие
@@ -16,24 +17,31 @@
 
 ```text
 [ Client / Postman ]
-                              │
-             ┌────────────────┴────────────────┐
-             │ (HTTP)                          │ (HTTP)
-             ▼                                 ▼
-    ┌────────────────┐                ┌────────────────┐
-    │  user-service  │                │ order-service  │
-    └────────────────┘                └────────────────┘
-            │                            │      │
-            ▼                            │      │ RabbitMQ Exchange
-     [( User DB )]                       ▼      │ (order.created.event)
-                                    (Order DB)  │
-                                                ▼
-                                    ┌──────────────────────┐
-                                    │ notification-service │
-                                    └──────────────────────┘
-                                               │
-                                               ▼
-                                     [( Notification DB )]
+                            │
+                            ▼ (HTTP)
+                  ┌──────────────────┐
+                  │ gateway-service  │
+                  └─────────┬────────┘
+                            │ (Header Injection: X-User-Id)
+             ┌──────────────┴──────────────┐
+             │ (HTTP)                      │ (HTTP)
+             ▼                             ▼
+    ┌────────────────┐   Feign (Fallback) ┌────────────────┐
+    │  user-service  │ ◄───────────────── │ order-service  │
+    └───────┬────────┘                    └───────┬────────┘
+            │                                     │ (Outbox DB Tx)
+            ▼                                     ▼
+     [( User DB )]                           [( Order DB )]
+                                                  │
+                                                  │ RabbitMQ Exchange
+                                                  │ (order.created.event)
+                                                  ▼
+                                      ┌──────────────────────┐
+                                      │ notification-service │
+                                      └──────────┬───────────┘
+                                                 │
+                                                 ▼
+                                       [( Notification DB )]
 ```
 ## **Реализованные механизмы надежности в RabbitMQ:**
 **Идемпотентность обработчиков:** Защита от дубликатов сообщений (проверка обработанных eventId на стороне потребителя).
@@ -45,11 +53,13 @@
 **DLQ Logging:** Логирование проблемных сообщений из DLQ в БД для последующего анализа.
 
 ## 🚀 Текущий функционал
-**Пользователи:** Создание учетных записей пользователей.
+**Централизованный Gateway:** Единая точка входа для клиентов.
 
-**Заказы:** Создание и обработка заказов, генерация событий о создании заказа (OrderCreatedEvent).
+**Пользователи:** Создание учетных записей и межсервисная валидация их существования при оформлении заказов.
 
-**Уведомления:** Имитация отправки E-mail / SMS уведомлений клиенту при изменении состояния заказа.
+**Заказы:** Защищенное создание заказов без возможности подмены userId, вынос сетевых I/O вызовов за пределы БД-транзакций, фоновая отправка Outbox-событий.
+
+**Уведомления:** Идемпотентная обработка событий создания заказа и сохранение истории уведомлений.
 
 ## 🚀 Как запустить проект локально
 Требования:
@@ -62,39 +72,42 @@ Java 17+;
 
 **Порядок запуска:**
 
-Клонировать репозиторий:
+1. Клонировать репозиторий:
 
 ```Bash
-git clone https://github.com/valdemare/microservice-pet-app.git
+git clone [https://github.com/valdemare/microservice-pet-app.git](https://github.com/valdemare/microservice-pet-app.git)
+cd microservice-pet-app
 ```
-Убедиться, что RabbitMQ запущен.
 
-Запустить user-service:
-
+2. Собрать общий модуль безопасности:
 ```Bash
-cd user-service
-./mvnw spring-boot:run
-```
-Запустить order-service:
+cd common-security
+mvn clean install
+cd ..
+ ```
+3. Убедиться, что PostgreSQL и RabbitMQ запущены.
 
-```Bash
-cd order-service
-./mvnw spring-boot:run
-```
-Запустить notification-service:
+4. Запустить сервисы по очереди:
 
-```Bash
-cd notification-service
-./mvnw spring-boot:run
-```
+ * discovery-service / gateway-service
+
+ * user-service
+
+ * order-service
+
+ * notification-service
 
 ## 📌 План дальнейшего развития (Roadmap)
-[ ] Гарантии доставки (Transactional Outbox Pattern): Исключение потери событий при падении брокера или базы в момент сохранения заказа.
+**[x] Гарантии доставки (Transactional Outbox Pattern):** Исключение потери событий при падении брокера или базы в момент сохранения заказа.
 
-[ ] API Gateway: Настройка единой точки входа (Spring Cloud Gateway, порт 8080) для маршрутизации внешних запросов.
+**[x] API Gateway & Context:** Маршрутизация внешних запросов и централизованный проброс контекста пользователя.
 
-[ ] Профиль статусов: Добавление полного CRUD для пользователей и просмотр актуального статуса заказов.
+**[x] Resilience & Circuit Breaker:** Изоляция вызовов между сервисами при помощи Resilience4j и FallbackFactory.
 
-[ ] Контейнеризация: Написание Dockerfile для каждого сервиса и единого docker-compose.yml для моментального развертывания всей инфраструктуры.
+**[ ] Distributed Tracing:** Подключение и визуализация сквозных логов через Micrometer Tracing + Zipkin / Grafana Tempo.
 
-[ ] Frontend: Простой веб-интерфейс для демонстрации работы системы.
+**[ ] Интеграционное тестирование:** Написание тестов на контроллеры и Feign-клиенты с использованием WireMock.
+
+**[ ] Контейнеризация:** Написание Dockerfile для каждого сервиса и docker-compose.yml для развертывания всей инфраструктуры.
+
+**[ ] Frontend:** Простой веб-интерфейс для демонстрации работы системы.
