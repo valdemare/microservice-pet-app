@@ -22,6 +22,14 @@ public class OutboxEntity {
 
     private LocalDateTime createdAt;
 
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    public void incrementRetryCount() {
+        this.retryCount++;
+    }
+
+
     public enum OutboxStatus {
         PENDING, PROCESSED, FAILED
     }
@@ -50,4 +58,5 @@ public class OutboxEntity {
     public void setStatus(OutboxStatus status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public int getRetryCount() { return retryCount; }
 }

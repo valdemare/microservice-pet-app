@@ -12,29 +12,34 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
 @Component
 public class OutboxScheduler {
 
+    private static final int MAX_RETRIES = 5;
     private static final Logger log = LoggerFactory.getLogger(OutboxScheduler.class);
 
     private final OutboxRepository outboxRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final TransactionTemplate transactionTemplate;
 
-    public OutboxScheduler(OutboxRepository outboxRepository, RabbitTemplate rabbitTemplate) {
+    public OutboxScheduler(OutboxRepository outboxRepository,
+                           RabbitTemplate rabbitTemplate,
+                           TransactionTemplate transactionTemplate) {
         this.outboxRepository = outboxRepository;
         this.rabbitTemplate = rabbitTemplate;
+        this.transactionTemplate=transactionTemplate;
     }
 
     // Запуск каждые 3 секунды (3000 мс)
     @Scheduled(fixedDelay = 3000)
-    @Transactional
     public void processOutboxMessages() {
-        List<OutboxEntity> pendingMessages = outboxRepository
-                .findByStatusOrderByCreatedAtAsc(OutboxEntity.OutboxStatus.PENDING, PageRequest.of(0, 100));
-
+        List<OutboxEntity> pendingMessages = transactionTemplate.execute(status ->
+                outboxRepository.findPendingForUpdate(100)
+        );
         if (pendingMessages.isEmpty()) {
             return;
         }
@@ -61,7 +66,16 @@ public class OutboxScheduler {
 
             } catch (Exception e) {
                 log.error("Ошибка при отправке события outboxId={} в RabbitMQ", outbox.getId(), e);
-                // В случае ошибки сбойная запись останется в статусе PENDING и попробуется снова при следующем тике
+                // Обработка ошибок и защита от Poison Pill
+                transactionTemplate.executeWithoutResult(status -> {
+                    outbox.incrementRetryCount();
+                    if (outbox.getRetryCount() >= MAX_RETRIES) {
+                        outbox.setStatus(OutboxEntity.OutboxStatus.FAILED);
+                        log.error("Событие outboxId={} превысило лимит попыток ({}) и помечено FAILED",
+                                outbox.getId(), MAX_RETRIES);
+                    }
+                    outboxRepository.save(outbox);
+                });
             }
         }
     }

@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -29,8 +30,8 @@ public class OrderService {
     private final OutboxRepository outboxRepository;
     private final UserClient userClient;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
-    @Transactional
     public OrderEntity createOrder(OrderEntity order, Long userIdFromToken) {
         // 1. Принудительно устанавливаем userId из JWT-токена (защита от подмены)
         order.setUserId(userIdFromToken);
@@ -39,24 +40,24 @@ public class OrderService {
         validateUserExistence(order.getUserId());
 
         // 3. Сохраняем сам заказ
-        OrderEntity savedOrder = orderRepository.save(order);
+        return transactionTemplate.execute(status -> {
+            OrderEntity savedOrder = orderRepository.save(order);
 
-        // 4. Формируем событие
-        String eventId = UUID.randomUUID().toString();
-        OrderCreatedEvent event = new OrderCreatedEvent(
-                eventId,
-                savedOrder.getId(),
-                savedOrder.getUserId(),
-                savedOrder.getDescription(),
-                savedOrder.getPrice()
-        );
+            String eventId = UUID.randomUUID().toString();
+            OrderCreatedEvent event = new OrderCreatedEvent(
+                    eventId,
+                    savedOrder.getId(),
+                    savedOrder.getUserId(),
+                    savedOrder.getDescription(),
+                    savedOrder.getPrice()
+            );
 
-        // 5. Сохраняем запись в Outbox
-        OutboxEntity outbox = createOutboxEntity(eventId, savedOrder.getId(), event);
-        outboxRepository.save(outbox);
+            OutboxEntity outbox = createOutboxEntity(eventId, savedOrder.getId(), event);
+            outboxRepository.save(outbox);
 
-        log.info("Заказ #{} и событие Outbox [{}] успешно сохранены", savedOrder.getId(), eventId);
-        return savedOrder;
+            log.info("Заказ #{} и событие Outbox [{}] сохранены", savedOrder.getId(), eventId);
+            return savedOrder;
+        });
     }
 
     @Transactional(readOnly = true)
