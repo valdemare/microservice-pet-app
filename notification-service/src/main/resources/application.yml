@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: notification-service
+  # notification_db
+  datasource:
+    url: jdbc:postgresql://localhost:5432/notification_db
+    username: postgres
+    password: qweryt123
+  # Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  # RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        default-requeue-rejected: false
+        # Retry Mechanism
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000ms
+          multiplier: 2.0
+
+server:
+  port: 8083
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # Фиксируем 100% запросов
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+# Кастомные свойства приложения
+rabbitmq:
+  queue:
+    name: order.created.queue
+
+logging:
+  pattern:
+    # Шаблон лога: [ИмяСервиса, TraceId, SpanId]
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

@@ -65,12 +65,14 @@ public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         }
         ServerHttpRequest mutatedRequest = requestBuilder
                 .header("X-User-Id", claims.getSubject())
-                .header("X-User-Role", claims.get("role", String.class))
+                .header("X-User-Role", role)
+            //    .header("X-User-Role", claims.get("role", String.class))
                 .build();
 
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
     } catch (Exception e) {
+        e.printStackTrace();
         return onError(exchange, "Невалидный или просроченный JWT токен", HttpStatus.UNAUTHORIZED);
     }
 }

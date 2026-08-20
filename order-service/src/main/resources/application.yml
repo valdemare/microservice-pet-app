@@ -10,6 +10,8 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: true
+      micrometer:
+        enabled: true
   # orders_db
   datasource:
     url: jdbc:postgresql://localhost:5432/orders_db
@@ -51,6 +53,12 @@ management:
     # Если падает из-за DB/RabbitMQ в режиме отладки:
     db:
       enabled: false
+  tracing:
+    sampling:
+      probability: 1.0 # Логируем 100% запросов
+    propagation:
+      type: "B3_MULTI,W3C"  # Явно включаем стандарт W3C (traceparent)
+
 
 logging:
   level:
@@ -60,6 +68,8 @@ logging:
       springframework:
         web: DEBUG
         security: DEBUG
+  pattern:
+    level: "%5p [%X{traceId:-},%X{spanId:-}]"
 
 feign:
   circuitbreaker:

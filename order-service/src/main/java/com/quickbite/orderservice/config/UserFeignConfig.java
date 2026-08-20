@@ -6,8 +6,11 @@ import com.quickbite.common.security.UserContextFilter;
 import com.quickbite.orderservice.exception.UserServiceException;
 import feign.RequestInterceptor;
 import feign.codec.ErrorDecoder;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 public class UserFeignConfig {
     @Bean
@@ -20,12 +23,22 @@ public class UserFeignConfig {
     @Bean
     public RequestInterceptor userContextRequestInterceptor() {
         return requestTemplate -> {
-            var authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.getPrincipal() instanceof UserContext userContext) {
-                requestTemplate.header(SecurityConstants.X_USER_ID, String.valueOf(userContext.getUserId()));
-                if (userContext.getRoles() != null && !userContext.getRoles().isEmpty()) {
-                    requestTemplate.header(SecurityConstants.X_USER_ROLE, String.join(",", userContext.getRoles()));
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes != null) {
+                HttpServletRequest request = attributes.getRequest();
+
+                String userId = request.getHeader(SecurityConstants.X_USER_ID);
+                String userRole = request.getHeader(SecurityConstants.X_USER_ROLE);
+
+                if (userId != null && !userId.isBlank()) {
+                    requestTemplate.header(SecurityConstants.X_USER_ID, userId);
                 }
+                if (userRole != null && !userRole.isBlank()) {
+                    requestTemplate.header(SecurityConstants.X_USER_ROLE, userRole);
+                }
+            }else {
+                // Если попадаем сюда — контекст потока пуст!
+                System.err.println("Feign Interceptor: Authentication is NULL or invalid principal!");
             }
         };
     }

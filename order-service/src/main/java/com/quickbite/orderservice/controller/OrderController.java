@@ -6,8 +6,10 @@ import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.repository.OutboxRepository;
 import com.quickbite.orderservice.service.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +25,7 @@ import java.util.List;
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class OrderController {
 
     private final OrderRepository orderRepository;
@@ -31,8 +34,10 @@ public class OrderController {
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public OrderEntity createOrder(@Valid @RequestBody OrderEntity order,
-                                   @AuthenticationPrincipal UserContext userContext) {
-
+                                   @AuthenticationPrincipal UserContext userContext,
+                                   HttpServletRequest request) {
+        log.info("[DIAG-3] Order-Service принял traceparent: {}", request.getHeader("traceparent"));
+        log.info("[DIAG-3] Order-Service принял X-B3-TraceId: {}", request.getHeader("X-B3-TraceId"));
         if (userContext == null || userContext.getUserId() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не аутентифицирован");
         }

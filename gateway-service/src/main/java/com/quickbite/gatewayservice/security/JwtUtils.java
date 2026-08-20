@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.HexFormat;
 
 @Component
 public class JwtUtils {
@@ -37,7 +38,8 @@ public class JwtUtils {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+        //byte[] keyBytes = Decoders.BASE64.decode(secret);
+        byte[] keyBytes = HexFormat.of().parseHex(secret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
