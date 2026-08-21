@@ -1,0 +1,37 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  # 1. Подключение к локальной PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orders_db_test
+    username: postgres
+    password: qweryt123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # Автоматически пересоздает схемы в тестовой БД
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # 2. Подключение к локальному RabbitMQ
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  # 3. Отключение Cloud / Discovery для тестов
+  cloud:
+    discovery:
+      enabled: false
+    config:
+      enabled: false
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
