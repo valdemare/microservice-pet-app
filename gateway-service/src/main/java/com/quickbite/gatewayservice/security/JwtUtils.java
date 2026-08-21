@@ -16,16 +16,7 @@ public class JwtUtils {
     @Value("${jwt.secret}")
     private String secret;
 
-    /**
-     * Валидация подписи и срока годности (выбросит исключение, если токен невалиден)
-     */
-  /*  public void validateToken(String token) {
-        Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token);
-    }
-*/
+
     /**
      * Извлечение Claims (полезной нагрузки)
      */

@@ -33,7 +33,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 @Override
 public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     ServerHttpRequest request = exchange.getRequest();
-
+    // 0. Propagate / Pass OPTIONS requests immediately for CORS Preflight
+    if (request.getMethod() == org.springframework.http.HttpMethod.OPTIONS) {
+        return chain.filter(exchange);
+    }
     // 1. ПРИНУДИТЕЛЬНО очищаем входящий запрос от внешних заголовков X-User-* (защита от Spoofing)
     ServerHttpRequest.Builder requestBuilder = request.mutate()
             .headers(headers -> {

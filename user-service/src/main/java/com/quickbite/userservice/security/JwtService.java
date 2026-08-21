@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.Map;
 
 @Service
@@ -43,7 +44,8 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(secret);
+       // byte[] keyBytes = Decoders.BASE64.decode(secret);
+        byte[] keyBytes = HexFormat.of().parseHex(secret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

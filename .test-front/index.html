@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickBite Demo Client</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8 font-sans">
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <h1 class="text-3xl font-bold text-gray-800 border-b pb-3">QuickBite Microservices Demo</h1>
+
+    <!-- 1. АВТОРИЗАЦИЯ И ПОЛУЧЕНИЕ JWT -->
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">1. Авторизация (/api/v1/auth/login)</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600">Email пользователя</label>
+                <input type="email" id="authEmail" value="user@quickbite.com" class="mt-1 w-full p-2 border rounded border-gray-300 focus:ring-2 focus:ring-blue-400 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600">Пароль</label>
+                <input type="password" id="authPassword" value="password" class="mt-1 w-full p-2 border rounded border-gray-300 focus:ring-2 focus:ring-blue-400 outline-none">
+            </div>
+        </div>
+        <button onclick="login()" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition">
+            Войти и получить JWT
+        </button>
+        <div class="mt-3">
+            <label class="block text-xs font-medium text-gray-500">Полученный Bearer Token:</label>
+            <input type="text" id="jwtToken" readonly placeholder="Токен появится здесь после входа..." class="mt-1 w-full p-2 border rounded bg-gray-50 text-xs font-mono text-gray-600 outline-none">
+        </div>
+    </div>
+
+    <!-- 2. СОЗДАНИЕ И ПОЛУЧЕНИЕ ЗАКАЗОВ -->
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">2. Управление заказами (/api/v1/orders)</h2>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600">Описание заказа</label>
+                <input type="text" id="orderDesc" value="Пицца Маргарита и Кола" class="mt-1 w-full p-2 border rounded border-gray-300 focus:ring-2 focus:ring-green-400 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600">Цена (руб.)</label>
+                <input type="number" step="0.01" id="orderPrice" value="850.00" class="mt-1 w-full p-2 border rounded border-gray-300 focus:ring-2 focus:ring-green-400 outline-none">
+            </div>
+            <div class="flex gap-4">
+                <button onclick="createOrder()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition">
+                    Отправить заказ (POST)
+                </button>
+                <button onclick="getOrders()" class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+                    Получить все заказы (GET)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. ЛОГ ОТВЕТА СЕРВЕРА -->
+    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+        <h2 class="text-xl font-semibold mb-2 text-gray-700">3. Ответ от Gateway / Service</h2>
+        <div id="statusBadge" class="inline-block px-3 py-1 rounded text-sm font-bold text-white mb-3 bg-gray-400">
+            Ожидание запроса
+        </div>
+        <pre id="jsonOutput" class="bg-gray-900 text-green-400 p-4 rounded overflow-x-auto text-sm h-48 font-mono">// Нажмите кнопку выше для отправки запроса...</pre>
+    </div>
+
+</div>
+
+<script>
+    const BASE_URL = 'http://localhost:8080';
+
+    function getHeaders() {
+        const token = document.getElementById('jwtToken').value;
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        return headers;
+    }
+
+    function displayResult(status, data) {
+        const badge = document.getElementById('statusBadge');
+        const output = document.getElementById('jsonOutput');
+
+        badge.innerText = `HTTP ${status}`;
+        if (status >= 200 && status < 300) {
+            badge.className = "inline-block px-3 py-1 rounded text-sm font-bold text-white mb-3 bg-green-500";
+        } else {
+            badge.className = "inline-block px-3 py-1 rounded text-sm font-bold text-white mb-3 bg-red-500";
+        }
+
+        output.innerText = JSON.stringify(data, null, 2);
+    }
+
+    async function login() {
+        const payload = {
+            email: document.getElementById('authEmail').value,
+            password: document.getElementById('authPassword').value
+        };
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            displayResult(response.status, data);
+
+            if (response.ok && data.token) {
+                document.getElementById('jwtToken').value = data.token;
+            }
+        } catch (err) {
+            displayResult('ERROR', { message: err.message });
+        }
+    }
+
+    async function createOrder() {
+        const payload = {
+            description: document.getElementById('orderDesc').value,
+            price: parseFloat(document.getElementById('orderPrice').value)
+        };
+
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/orders`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json().catch(() => ({ status: "OK, no body" }));
+            displayResult(response.status, data);
+        } catch (err) {
+            displayResult('ERROR', { message: err.message });
+        }
+    }
+
+    async function getOrders() {
+        try {
+            const response = await fetch(`${BASE_URL}/api/v1/orders`, {
+                method: 'GET',
+                headers: getHeaders()
+            });
+            const data = await response.json();
+            displayResult(response.status, data);
+        } catch (err) {
+            displayResult('ERROR', { message: err.message });
+        }
+    }
+</script>
+</body>
+</html>

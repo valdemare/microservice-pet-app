@@ -17,6 +17,8 @@ spring:
               - "http://localhost:3000"
               - "http://localhost:5173" # Стандартный порт Vite / React
               - "https://*.quickbite.com" # Продакшен домены
+              - "null"        # ◄ Обязательно для открытия HTML-файла с диска (file://)
+              - "file://*"    # ◄ Для некорректных форматов Origin в некоторых браузерах
             allowedMethods:
               - GET
               - POST
@@ -29,6 +31,8 @@ spring:
               - "X-Requested-With"
               - "Accept"
               - "Origin"
+              - "X-User-Id"
+              - "X-User-Role"
             exposedHeaders: # Заголовки, которые JS на фронтенде сможет прочитать из ответа
               - "X-User-Id"
               - "X-User-Role"

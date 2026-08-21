@@ -2,6 +2,7 @@ package com.quickbite.orderservice.controller;
 
 import com.quickbite.common.security.UserContext;
 import com.quickbite.orderservice.client.UserClient;
+import com.quickbite.orderservice.dto.OrderCreateDto;
 import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.repository.OutboxRepository;
@@ -33,7 +34,8 @@ public class OrderController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public OrderEntity createOrder(@Valid @RequestBody OrderEntity order,
+    public OrderEntity createOrder(@Valid @RequestBody OrderCreateDto dto,
+                                   @RequestHeader("X-User-Id") Long userId,
                                    @AuthenticationPrincipal UserContext userContext,
                                    HttpServletRequest request) {
         log.info("[DIAG-3] Order-Service принял traceparent: {}", request.getHeader("traceparent"));
@@ -41,7 +43,10 @@ public class OrderController {
         if (userContext == null || userContext.getUserId() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Пользователь не аутентифицирован");
         }
-        return orderService.createOrder(order, userContext.getUserId());
+        OrderEntity order = new OrderEntity();
+        order.setDescription(dto.description());
+        order.setPrice(dto.price());
+        return orderService.createOrder(order, userId);// userContext.getUserId());
     }
 
     @GetMapping
