@@ -78,6 +78,9 @@ management:
       probability: 1.0
     propagation:
       type: "B3_MULTI,W3C"
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces # Стандартный OTLP порт Jaeger
   endpoints:
     web:
       exposure:

@@ -1,4 +1,4 @@
-package com.quickbite.gatewayservice.config;
+package com.quickbite.orderservice.config;
 
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import org.springframework.beans.factory.annotation.Value;
