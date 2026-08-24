@@ -1,26 +1,23 @@
 package com.quickbite.orderservice.controller;
 
 import com.quickbite.common.security.UserContext;
-import com.quickbite.orderservice.client.UserClient;
 import com.quickbite.orderservice.dto.OrderCreateDto;
 import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
-import com.quickbite.orderservice.repository.OutboxRepository;
 import com.quickbite.orderservice.service.OrderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -47,6 +44,17 @@ public class OrderController {
         order.setDescription(dto.description());
         order.setPrice(dto.price());
         return orderService.createOrder(order, userId);// userContext.getUserId());
+    }
+
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public OrderEntity getOrderById(
+            @PathVariable("id") Long id,
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestHeader(value = "X-User-Role", defaultValue = "ROLE_USER") String userRole) {
+
+        return orderService.getOrderById(id, userId, userRole);
     }
 
     @GetMapping

@@ -79,4 +79,19 @@ public class OrderService {
             throw new IllegalStateException("Ошибка сериализации события в Outbox", e);
         }
     }
+
+    public OrderEntity getOrderById(Long orderId, Long currentUserId, String currentUserRole) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заказ не найден"));
+
+        // Если это не админ и не владелец заказа — запрещаем доступ
+        boolean isAdmin = "ROLE_ADMIN".equals(currentUserRole);
+        boolean isOwner = order.getUserId().equals(currentUserId);
+
+        if (!isAdmin && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Нет доступа к чужому заказу");
+        }
+
+        return order;
+    }
 }

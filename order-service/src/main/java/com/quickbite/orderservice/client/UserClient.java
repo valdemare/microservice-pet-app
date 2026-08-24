@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 // Вызывает user-service по указанному URL
 @FeignClient(name = "user-service"
+        ,url = "${user-service.url:}"
         ,fallbackFactory = UserClientFallbackFactory.class
         ,configuration = UserFeignConfig.class
 )

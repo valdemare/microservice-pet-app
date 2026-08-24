@@ -2,6 +2,7 @@ package com.quickbite.orderservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quickbite.common.security.CommonSecurityConfig;
+import com.quickbite.orderservice.dto.OrderCreateDto;
 import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.service.OrderService;
@@ -10,12 +11,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -126,4 +129,71 @@ class OrderControllerSecurityTest {
                         .content(objectMapper.writeValueAsString(orderRequest)))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("POST /api/v1/orders - 400 Bad Request при отрицательной цене в DTO")
+    @WithMockUser(roles = "USER")
+    void createOrder_whenNegativePrice_shouldReturn400() throws Exception {
+        OrderCreateDto invalidDto = new OrderCreateDto("Пицца", new BigDecimal("-100.00"));
+
+        mockMvc.perform(post("/api/v1/orders")
+                        .header("X-User-Id", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/orders - 400 Bad Request при пустом описании в DTO")
+    @WithMockUser(roles = "USER")
+    void createOrder_whenEmptyDescription_shouldReturn400() throws Exception {
+        OrderCreateDto invalidDto = new OrderCreateDto("", new BigDecimal("1000.00"));
+
+        mockMvc.perform(post("/api/v1/orders")
+                        .header("X-User-Id", "1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("GET /api/v1/orders/{id} - Возвращает заказ по ID")
+    void getOrderById_whenFound_shouldReturn200() throws Exception {
+        Long orderId = 42L;
+        Long userId = 1L;
+
+        OrderEntity mockOrder = new OrderEntity();
+        mockOrder.setUserId(userId);
+        mockOrder.setId(orderId);
+        mockOrder.setDescription("Пицца");
+        mockOrder.setPrice(new BigDecimal("600.00"));
+
+        when(orderService.getOrderById(eq(orderId), eq(userId), eq("ROLE_USER")))
+                .thenReturn(mockOrder);
+
+        // Подставляем orderId прямо в вызов get():
+        mockMvc.perform(get("/api/v1/orders/{id}", orderId)
+                        .header("X-User-Id", "1")
+                        .header("X-User-Role", "ROLE_USER"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(orderId))
+                .andExpect(jsonPath("$.description").value("Пицца"));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/orders/{id} - Должен вернуть 403 Forbidden при попытке получить чужой заказ")
+    void getOrderById_whenNotOwner_shouldReturn403() throws Exception {
+        Long orderId = 10L;
+        Long attackerUserId = 2L; // Чужой пользователь
+
+        when(orderService.getOrderById(eq(orderId), eq(attackerUserId), eq("ROLE_USER")))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Нет доступа"));
+
+        mockMvc.perform(get("/api/v1/orders/{id}", orderId)
+                        .header("X-User-Id", String.valueOf(attackerUserId))
+                        .header("X-User-Role", "ROLE_USER"))
+                .andExpect(status().isForbidden());
+    }
+
 }
