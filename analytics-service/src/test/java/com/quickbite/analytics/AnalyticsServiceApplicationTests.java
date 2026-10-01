@@ -1,4 +1,4 @@
-package com.quickbite.analyticsservice;
+package com.quickbite.analytics;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,4 +1,4 @@
-package com.quickbite.analyticsservice;
+package com.quickbite.analytics;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
