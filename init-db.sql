@@ -2,6 +2,7 @@
 CREATE DATABASE users_db;
 CREATE DATABASE orders_db;
 CREATE DATABASE notification_db;
+CREATE DATABASE analytics_db;
 
 -- Подключение к базе users_db (или создание её при необходимости)
 \c users_db;
