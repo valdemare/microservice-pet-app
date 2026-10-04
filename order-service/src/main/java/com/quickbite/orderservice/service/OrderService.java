@@ -7,9 +7,9 @@ import com.quickbite.orderservice.dto.OrderCreatedEvent;
 import com.quickbite.orderservice.dto.UserDto;
 import com.quickbite.orderservice.entity.OrderEntity;
 import com.quickbite.orderservice.entity.OutboxEntity;
+import com.quickbite.orderservice.kafka.OrderKafkaProducer;
 import com.quickbite.orderservice.repository.OrderRepository;
 import com.quickbite.orderservice.repository.OutboxRepository;
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,12 +50,12 @@ public class OrderService {
                     savedOrder.getId(),
                     savedOrder.getUserId(),
                     savedOrder.getDescription(),
-                    savedOrder.getPrice()
+                    savedOrder.getPrice(),
+                    LocalDateTime.now()
             );
 
             OutboxEntity outbox = createOutboxEntity(eventId, savedOrder.getId(), event);
             outboxRepository.save(outbox);
-
             log.info("Заказ #{} и событие Outbox [{}] сохранены", savedOrder.getId(), eventId);
             return savedOrder;
         });

@@ -16,7 +16,7 @@ public class OrderEventListener {
 
     @KafkaListener(topics = "orders-stream", groupId = "analytics-group")
     public void handleOrderCreated(OrderCreatedEvent event) {
-        log.info("Получено событие заказа из Kafka: orderId={}, amount={}", event.getOrderId(), event.getTotalPrice());
+        log.info("Получено событие заказа из Kafka: orderId={}, amount={}", event.getOrderId(), event.getPrice());
         analyticsService.processOrderCreated(event);
     }
 }

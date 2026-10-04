@@ -1,18 +1,19 @@
 package com.quickbite.orderservice.scheduler;
 
+import com.quickbite.orderservice.dto.OrderCreatedEvent;
 import com.quickbite.orderservice.entity.OutboxEntity;
 import com.quickbite.orderservice.config.RabbitMQConfig;
+import com.quickbite.orderservice.kafka.OrderKafkaProducer;
 import com.quickbite.orderservice.repository.OutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -25,13 +26,19 @@ public class OutboxScheduler {
     private final OutboxRepository outboxRepository;
     private final RabbitTemplate rabbitTemplate;
     private final TransactionTemplate transactionTemplate;
+    private final OrderKafkaProducer kafkaProducer;
+    private final ObjectMapper objectMapper;
 
     public OutboxScheduler(OutboxRepository outboxRepository,
                            RabbitTemplate rabbitTemplate,
-                           TransactionTemplate transactionTemplate) {
+                           TransactionTemplate transactionTemplate,
+                           OrderKafkaProducer kafkaProducer,
+                           ObjectMapper objectMapper) {
         this.outboxRepository = outboxRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.transactionTemplate=transactionTemplate;
+        this.kafkaProducer = kafkaProducer;
+        this.objectMapper = objectMapper;
     }
 
     // Запуск каждые 3 секунды (3000 мс)
@@ -58,6 +65,9 @@ public class OutboxScheduler {
                 // Отправляем в RabbitMQ
                 rabbitTemplate.send("", RabbitMQConfig.QUEUE_NAME, message);
 
+                // Отправляем в kafka
+                OrderCreatedEvent event = objectMapper.readValue(outbox.getPayload(), OrderCreatedEvent.class);
+                kafkaProducer.sendOrderCreatedEvent(event);
                 // Помечаем как успешно отправленное
                 outbox.setStatus(OutboxEntity.OutboxStatus.PROCESSED);
                 outboxRepository.save(outbox);

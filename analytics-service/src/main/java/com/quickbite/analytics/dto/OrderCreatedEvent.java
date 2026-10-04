@@ -11,8 +11,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderCreatedEvent {
+    private String eventId;
     private Long orderId;
     private Long userId;
-    private BigDecimal totalPrice;
+    private String description;
+    private BigDecimal price;
     private LocalDateTime createdAt;
 }

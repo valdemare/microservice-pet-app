@@ -37,6 +37,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Автоматически пробрасывать типы заголовков для правильной десериализации на стороне Consumer
+        spring.json.add.type.headers: true
 
 # (User Service)
 user:
