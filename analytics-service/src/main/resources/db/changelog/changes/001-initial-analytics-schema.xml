@@ -5,13 +5,16 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="001-create-order-metrics-table" author="valdemar">
+    <changeSet id="001-create-order-metrics-table" author="valdemare">
         <createTable tableName="order_metrics">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="order_id" type="BIGINT">
+            <column name="event_id" type="VARCHAR(36)">
                 <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="order_id" type="BIGINT">
+                <constraints nullable="false"/>
             </column>
             <column name="user_id" type="BIGINT">
                 <constraints nullable="false"/>
