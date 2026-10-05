@@ -66,6 +66,12 @@ spring:
           predicates:
             - Path=/users/**, /api/v1/auth/**, /api/v1/users/**
 
+        # Маршрут для Analytics Service
+        - id: analytics-service-route
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/v1/analytics/**
+
 eureka:
   client:
     service-url:

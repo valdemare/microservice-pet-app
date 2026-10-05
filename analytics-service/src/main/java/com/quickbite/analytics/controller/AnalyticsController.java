@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -18,6 +19,7 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     @GetMapping("/summary")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AnalyticsSummaryDto> getSummary() {
         log.info("Запрос на получение сводной аналитики по заказам");
         AnalyticsSummaryDto summary = analyticsService.getSummaryDto();
