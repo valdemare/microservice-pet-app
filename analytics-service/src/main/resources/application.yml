@@ -25,3 +25,18 @@ spring:
         spring.json.trusted.packages: "*"
         max.poll.records: 100
         fetch.max.wait.ms: 500
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # Логируем 100% запросов
+    propagation:
+      type: "B3_MULTI,W3C"  # Явно включаем стандарт W3C (traceparent)
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+logging:
+  pattern:
+    level: "%5p [%X{traceId:-},%X{spanId:-}]"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%X{traceId:-},%X{spanId:-}] --- [%15.15t] %-40.40logger{36} : %m%n"
